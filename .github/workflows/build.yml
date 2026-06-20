@@ -1,0 +1,46 @@
+name: Build SecretWarden
+
+on:
+    workflow_dispatch:
+
+jobs:
+    build:
+        strategy:
+            matrix:
+                os:
+                    - ubuntu-latest
+                    - macos-latest
+                    - windows-latest
+
+        runs-on: ${{ matrix.os }}
+
+        steps:
+            - uses: actions/checkout@v4
+
+            - uses: dtolnay/rust-toolchain@stable
+
+            - name: Build
+              run: cargo build --workspace --release
+
+            # Package Linux and macOS binaries (Unix)
+            - name: Package binaries (Unix)
+              if: runner.os != 'Windows'
+              run: |
+                  mkdir -p release
+                  cp target/release/sw release/
+                  cp target/release/swd release/
+
+            # Package Windows binaries (Using cross-platform powershell syntax)
+            - name: Package binaries (Windows)
+              if: runner.os == 'Windows'
+              shell: pwsh
+              run: |
+                  New-Item -ItemType Directory -Force -Path release
+                  Copy-Item target/release/sw.exe release/
+                  Copy-Item target/release/swd.exe release/
+
+            - name: Upload binaries
+              uses: actions/upload-artifact@v4
+              with:
+                  name: secretwarden-${{ runner.os }}-${{ runner.arch }}
+                  path: release/
