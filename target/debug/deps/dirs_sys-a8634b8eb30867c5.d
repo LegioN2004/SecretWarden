@@ -1,5 +1,0 @@
-/Users/milinda/ghq/github.com/legion2004/SecretWarden/target/debug/deps/dirs_sys-a8634b8eb30867c5.d: /Users/milinda/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/dirs-sys-0.5.0/src/lib.rs
-
-/Users/milinda/ghq/github.com/legion2004/SecretWarden/target/debug/deps/libdirs_sys-a8634b8eb30867c5.rmeta: /Users/milinda/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/dirs-sys-0.5.0/src/lib.rs
-
-/Users/milinda/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/dirs-sys-0.5.0/src/lib.rs:

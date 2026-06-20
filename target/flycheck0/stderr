@@ -1,7 +1,0 @@
-warning: profiles for the non root package will be ignored, specify profiles at the workspace root:
-package:   /Users/milinda/ghq/github.com/legion2004/SecretWarden/daemon/Cargo.toml
-workspace: /Users/milinda/ghq/github.com/legion2004/SecretWarden/Cargo.toml
-warning: profiles for the non root package will be ignored, specify profiles at the workspace root:
-package:   /Users/milinda/ghq/github.com/legion2004/SecretWarden/cli/Cargo.toml
-workspace: /Users/milinda/ghq/github.com/legion2004/SecretWarden/Cargo.toml
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
