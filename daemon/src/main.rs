@@ -14,9 +14,11 @@ fn main() {
         .join("secretwarden");
 
     let log_dir = base.join("logs");
+    let bin_dir = base.join("bin");
     let log_file = log_dir.join("daemon.log");
 
     fs::create_dir_all(&base).expect("couldn't create directory");
+    fs::create_dir_all(&bin_dir).expect("couldn't create directory");
     fs::create_dir_all(&log_dir).expect("couldn't create directory");
 
     let mut file = OpenOptions::new()
@@ -33,7 +35,7 @@ fn main() {
 
         writeln!(
             file,
-            "I love gargu at this current time: {} and also {} many times",
+            "this current moment: {} and incremented numbers: {}",
             now,
             {
                 let tmp = i;
