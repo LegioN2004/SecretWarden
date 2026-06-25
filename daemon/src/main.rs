@@ -23,32 +23,49 @@ async fn socket_listener() {
 
     let socket = UnixListener::bind(SOCKET_PATH).unwrap();
 
-    /* accept returns this
-    Result<(UnixStream, SocketAddr), Error>
-
-      Success
-      ↓
-      (Stream, Address)
-
-    */
-
     loop {
         match socket.accept().await {
             Ok((mut stream, _addr)) => {
-                let mut buffer = vec![0; 1024]; // creates a storage space with buffer name
-                let bytes_read = stream.read(&mut buffer).await; // fills that storage and returns
-                // the number of bytes of data inserted
-                let buffer_data = &buffer[0..bytes_read] match {
-                   Ok(file) 
-                }; // takes out the bytes of data inserted
-                // in the buffer
-                let actual_data = std::str::from_utf8(buffer_data).expect("error in conversion"); // the
-                // bytes is converted to string utf8
-                if actual_data == "ping" {
-                    println!("pong");
-                }
-            } // _ has been used to show
-            // that neither variables are being intentionally used although created. inshort ignore
+                let mut buffer = vec![0; 1024];
+                let bytes_read = match stream.read(&mut buffer).await {
+                    Ok(0) => continue,
+                    Ok(size) => size,
+                    Err(e) => {
+                        println!("Error reading from stream: {:?}", e);
+                        continue;
+                    }
+                };
+                // mur mur tu
+                let actual_data =
+                    std::str::from_utf8(&buffer[0..bytes_read]).expect("error in conversion");
+
+                match actual_data {
+                    "ping" => {
+                        stream
+                            .write_all(b"pong")
+                            .await
+                            .expect("Failed to send ping status");
+                    }
+                    "status" => {
+                        stream
+                            .write_all(b"Daemon is working properly")
+                            .await
+                            .expect("Failed to send ping status");
+                    }
+                    "stop" => {
+                        stream
+                            .write_all(b"Shutting down Daemon")
+                            .await
+                            .expect("Failed to send ping status");
+                        // std::process::exit(0); // will add actual shutdown logic here later
+                    }
+                    // unknown catch all
+                    _ => {
+                        println!("Received unknown command: {}", actual_data);
+                        stream.write_all(b"error:").await.expect("error occured");
+                    }
+                };
+            }
             Err(e) => println!("some error occured {:?}", e),
         }
     }
@@ -106,8 +123,8 @@ async fn logging() {
         let now = Local::now();
         let message = format!(
             "
-        this current moment: {} and incremented nos: {}\n
-        ",
+                this current moment: {} and incremented nos: {}\n
+                ",
             now,
             {
                 let tmp = i;
