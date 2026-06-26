@@ -2,7 +2,8 @@
 
 members = [
     "daemon",
-    "cli"
+    "cli",
+    "protocol"
 ]
 
 resolver = "2"
