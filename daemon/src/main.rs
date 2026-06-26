@@ -1,18 +1,18 @@
 use chrono::Local;
 use dirs::config_dir;
+use protocol::SOCKET_PATH;
+use protocol::{Request, Response};
 use tokio::{
     fs::{OpenOptions, create_dir_all, remove_file, try_exists},
-    io::{AsyncReadExt, AsyncWriteExt},
-    net::UnixListener,
+    io::{AsyncBufReadExt, AsyncWriteExt, BufReader},
+    net::{UnixListener, UnixStream},
     time::Duration,
 };
 
 #[tokio::main]
 async fn main() {
-    tokio::join!(logging(), socket_listener(),);
+    tokio::join!(logging(), socket_listener());
 }
-
-const SOCKET_PATH: &str = "/tmp/secretwarden.sock";
 
 async fn socket_listener() {
     if try_exists(SOCKET_PATH).await.unwrap_or(false) {
@@ -25,50 +25,74 @@ async fn socket_listener() {
 
     loop {
         match socket.accept().await {
-            Ok((mut stream, _addr)) => {
-                let mut buffer = vec![0; 1024];
-                let bytes_read = match stream.read(&mut buffer).await {
-                    Ok(0) => continue,
-                    Ok(size) => size,
-                    Err(e) => {
-                        println!("Error reading from stream: {:?}", e);
-                        continue;
-                    }
-                };
-                // mur mur tu
-                let actual_data =
-                    std::str::from_utf8(&buffer[0..bytes_read]).expect("error in conversion");
-
-                match actual_data {
-                    "ping" => {
-                        stream
-                            .write_all(b"pong")
-                            .await
-                            .expect("Failed to send ping status");
-                    }
-                    "status" => {
-                        stream
-                            .write_all(b"Daemon is working properly")
-                            .await
-                            .expect("Failed to send ping status");
-                    }
-                    "stop" => {
-                        stream
-                            .write_all(b"Shutting down Daemon")
-                            .await
-                            .expect("Failed to send ping status");
-                        // std::process::exit(0); // will add actual shutdown logic here later
-                    }
-                    // unknown catch all
-                    _ => {
-                        println!("Received unknown command: {}", actual_data);
-                        stream.write_all(b"error:").await.expect("error occured");
-                    }
-                };
+            Ok((stream, _addr)) => {
+                tokio::spawn(async move {
+                    handle_client(stream).await;
+                });
             }
             Err(e) => println!("some error occured {:?}", e),
         }
     }
+}
+
+// background worker for concurrent streams
+// extra stream ahile aitu e handle koribo
+async fn handle_client(mut stream: UnixStream) {
+    let mut reader = BufReader::new(&mut stream);
+    let mut line = String::new();
+    let _bytes_read = match reader.read_line(&mut line).await {
+        Ok(0) => return,
+        Ok(size) => size,
+        Err(e) => {
+            println!("Error reading from stream: {:?}", e);
+            return;
+        }
+    };
+    // mur mur tu
+    // let actual_data = std::str::from_utf8(&buffer[0..bytes_read]).expect("error in conversion");
+
+    let request: Request = match serde_json::from_str(&line) {
+        Ok(req) => req,
+        Err(e) => {
+            // error message here, first stdout, then json response sent
+            println!("Failed to parse JSON from client {:?}", e);
+            let err_res = Response {
+                ok: false,
+                message: None,
+                error: Some("Invalid JSON format".to_string()),
+            };
+
+            let mut err_json = serde_json::to_string(&err_res).unwrap();
+            err_json.push('\n');
+            stream.write_all(err_json.as_bytes()).await.unwrap();
+            return;
+        }
+    };
+
+    let response = match request {
+        Request::Ping => Response {
+            ok: true,
+            message: Some("pong".to_string()),
+            error: None,
+        },
+        Request::Status => Response {
+            ok: true,
+            message: Some("Daemon is working properly".to_string()),
+            error: None,
+        },
+        Request::Stop => Response {
+            ok: true,
+            message: Some("Shutting down daemon".to_string()),
+            error: None,
+        },
+    };
+
+    let mut json_reply = serde_json::to_string(&response).unwrap();
+    json_reply.push('\n');
+    stream
+        .write_all(json_reply.as_bytes())
+        .await
+        .expect("Failed to send response")
 }
 
 async fn logging() {
@@ -123,8 +147,8 @@ async fn logging() {
         let now = Local::now();
         let message = format!(
             "
-                this current moment: {} and incremented nos: {}\n
-                ",
+        this current moment: {} and incremented nos: {}\n
+        ",
             now,
             {
                 let tmp = i;
